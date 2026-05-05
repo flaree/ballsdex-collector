@@ -35,6 +35,14 @@ class CollectorType(models.Model):
         related_name="collector_source_types",
         help_text="Only count balls with this special towards the requirement (null = count all balls)",
     )
+    award_special = models.ForeignKey(
+        "bd_models.Special",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="collector_award_types",
+        help_text="The special applied to the awarded ball",
+    )
     enabled = models.BooleanField(default=True)
 
     objects: Manager[Self] = Manager()
