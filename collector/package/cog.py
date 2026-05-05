@@ -10,7 +10,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from ballsdex.core.utils.transformers import BallEnabledTransform
-from bd_models.models import Ball, BallInstance, Player, Special
+from bd_models.models import Ball, BallInstance, Player
 
 from ..models import CollectorType
 
@@ -31,7 +31,7 @@ class Claim(commands.Cog):
         self._registered_command_names: list[str] = []
 
     async def cog_load(self) -> None:
-        collector_types = CollectorType.objects.filter(enabled=True).select_related("source_special")
+        collector_types = await CollectorType.objects.filter(enabled=True).select_related("source_special", "award_special")
         async for ct in collector_types:
             cmd = self._make_collector_command(ct)
             self.claim.add_command(cmd)
@@ -74,15 +74,14 @@ class Claim(commands.Cog):
     ) -> None:
         await interaction.response.defer(thinking=True, ephemeral=True)
 
-        try:
-            award_special = await Special.objects.aget(name=ct.name)
-        except Special.DoesNotExist:
+        if ct.award_special is None:
             await interaction.followup.send(
-                f"No special named **{ct.name}** exists in the bot. "
+                f"The **{ct.name}** collector type has no award special configured. "
                 "Please contact a bot administrator.",
                 ephemeral=True,
             )
             return
+        award_special = ct.award_special
 
         try:
             player = await Player.objects.aget(discord_id=interaction.user.id)
@@ -141,15 +140,15 @@ class Claim(commands.Cog):
 
     async def _run_checks(self) -> None:
         """Revoke collector balls from players who no longer meet the threshold."""
-        ct_by_name: dict[str, CollectorType] = {}
-        for ct in await CollectorType.objects.filter(enabled=True).select_related("source_special").alist():
-            ct_by_name[ct.name] = ct
+        ct_by_award_id: dict[int, CollectorType] = {}
+        for ct in await CollectorType.objects.filter(enabled=True, award_special__isnull=False).select_related("source_special", "award_special").alist():
+            ct_by_award_id[ct.award_special_id] = ct
 
-        if not ct_by_name:
+        if not ct_by_award_id:
             return
 
         collector_balls: list[BallInstance] = await BallInstance.objects.filter(
-            special__name__in=list(ct_by_name)
+            special_id__in=list(ct_by_award_id)
         ).select_related("ball", "player", "special").alist()
         if not collector_balls:
             return
@@ -161,7 +160,7 @@ class Claim(commands.Cog):
                 continue
             relevant = [
                 bi for bi in collector_balls
-                if (ct_by_name.get(bi.special.name) or ct).source_special_id == sid
+                if (ct_by_award_id.get(bi.special_id) or ct).source_special_id == sid
             ]
             player_ids = list({bi.player_id for bi in relevant})
             ball_ids = list({bi.ball_id for bi in relevant})
@@ -178,7 +177,7 @@ class Claim(commands.Cog):
             source_count_maps[sid] = count_map
 
         for bi in collector_balls:
-            ct = ct_by_name.get(bi.special.name)
+            ct = ct_by_award_id.get(bi.special_id)
             if ct is None:
                 continue
 
