@@ -31,7 +31,8 @@ class Claim(commands.Cog):
         self._registered_command_names: list[str] = []
 
     async def cog_load(self) -> None:
-        async for ct in CollectorType.objects.filter(enabled=True).select_related("source_special"):
+        collector_types = await CollectorType.objects.filter(enabled=True).select_related("source_special").alist()
+        for ct in collector_types:
             cmd = self._make_collector_command(ct)
             self.claim.add_command(cmd)
             self._registered_command_names.append(cmd.name)
@@ -141,18 +142,15 @@ class Claim(commands.Cog):
     async def _run_checks(self) -> None:
         """Revoke collector balls from players who no longer meet the threshold."""
         ct_by_name: dict[str, CollectorType] = {}
-        async for ct in CollectorType.objects.filter(enabled=True).select_related("source_special"):
+        for ct in await CollectorType.objects.filter(enabled=True).select_related("source_special").alist():
             ct_by_name[ct.name] = ct
 
         if not ct_by_name:
             return
 
-        collector_balls = [
-            bi
-            async for bi in BallInstance.objects.filter(
-                special__name__in=list(ct_by_name)
-            ).select_related("ball", "player", "special")
-        ]
+        collector_balls: list[BallInstance] = await BallInstance.objects.filter(
+            special__name__in=list(ct_by_name)
+        ).select_related("ball", "player", "special").alist()
         if not collector_balls:
             return
 
@@ -174,7 +172,8 @@ class Claim(commands.Cog):
             if sid is not None:
                 qs = qs.filter(special_id=sid)
             count_map: dict[tuple[int, int], int] = defaultdict(int)
-            async for player_id, ball_id in qs.values_list("player_id", "ball_id"):
+            rows = await qs.values_list("player_id", "ball_id").alist()
+            for player_id, ball_id in rows:
                 count_map[(player_id, ball_id)] += 1
             source_count_maps[sid] = count_map
 
