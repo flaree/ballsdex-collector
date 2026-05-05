@@ -31,8 +31,8 @@ class Claim(commands.Cog):
         self._registered_command_names: list[str] = []
 
     async def cog_load(self) -> None:
-        collector_types = await CollectorType.objects.filter(enabled=True).select_related("source_special").alist()
-        for ct in collector_types:
+        collector_types = CollectorType.objects.filter(enabled=True).select_related("source_special")
+        async for ct in collector_types:
             cmd = self._make_collector_command(ct)
             self.claim.add_command(cmd)
             self._registered_command_names.append(cmd.name)
