@@ -16,3 +16,11 @@ readme = "README.md"
 
 [project.urls]
 Homepage = "https://github.com/flaree/ballsdex-collector"
+Documentation = "https://ballsdex-collector.readthedocs.io"
+
+[project.optional-dependencies]
+docs = [
+    "furo",
+    "myst-parser",
+    "sphinx",
+]
