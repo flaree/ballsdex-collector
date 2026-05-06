@@ -1,6 +1,6 @@
 # BallsDex Collector
 
-The **Collector** package is a third-party plugin for [BallsDex](https://github.com/laggron42/BallsDex-DiscordBot) that adds a collection milestone system. Players who accumulate enough copies of a ball can claim a special variant of that ball as a reward — with thresholds that scale dynamically based on each ball's rarity.
+The **Collector** package is a third-party plugin for [BallsDex](https://github.com/Ballsdex-Team/BallsDex-DiscordBot) that adds a collection milestone system. Players who accumulate enough copies of a ball can claim a special variant of that ball as a reward — with thresholds that scale dynamically based on each ball's rarity.
 
 ## Features
 
