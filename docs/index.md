@@ -26,4 +26,5 @@ installation
 
 how-it-works
 admin
+changelog
 ```
