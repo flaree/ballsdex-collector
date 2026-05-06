@@ -17,6 +17,7 @@ readme = "README.md"
 [project.urls]
 Homepage = "https://github.com/flaree/ballsdex-collector"
 Documentation = "https://ballsdex-collector.readthedocs.io"
+Changelogs = "https://ballsdex-collector.readthedocs.io/en/latest/changelog.html"
 
 [project.optional-dependencies]
 docs = [
