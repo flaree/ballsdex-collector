@@ -33,8 +33,12 @@ class Claim(commands.Cog):
     async def cog_load(self) -> None:
         collector_types = CollectorType.objects.filter(enabled=True).select_related("source_special", "award_special")
         async for ct in collector_types:
-            cmd = self._make_collector_command(ct)
-            self.claim.add_command(cmd)
+            try:
+                cmd = self._make_collector_command(ct)
+                self.claim.add_command(cmd)
+            except (ValueError, app_commands.CommandAlreadyRegistered):
+                log.exception("Could not register /claim command for collector type %r", ct.name)
+                continue
             self._registered_command_names.append(cmd.name)
         self._check_task = asyncio.create_task(self._check_loop())
 
@@ -55,7 +59,7 @@ class Claim(commands.Cog):
         ) -> None:
             await cog._handle_claim(interaction, ball, ct)
 
-        cmd_name = ct.name.lower().replace(" ", "_")
+        cmd_name = ct.command_name
         callback.__name__ = cmd_name
 
         cmd: app_commands.Command = app_commands.Command(
@@ -141,20 +145,24 @@ class Claim(commands.Cog):
     async def _run_checks(self) -> None:
         """Revoke collector balls from players who no longer meet the threshold."""
         ct_by_award_id: dict[int, CollectorType] = {}
-        for ct in await CollectorType.objects.filter(enabled=True, award_special__isnull=False).select_related("source_special", "award_special").alist():
+        async for ct in CollectorType.objects.filter(
+            enabled=True, award_special__isnull=False
+        ).select_related("source_special", "award_special"):
             ct_by_award_id[ct.award_special_id] = ct
 
         if not ct_by_award_id:
             return
 
-        collector_balls: list[BallInstance] = await BallInstance.objects.filter(
-            special_id__in=list(ct_by_award_id)
-        ).select_related("ball", "player", "special").alist()
+        collector_balls: list[BallInstance] = [
+            bi async for bi in BallInstance.objects.filter(
+                special_id__in=list(ct_by_award_id)
+            ).select_related("ball", "player", "special")
+        ]
         if not collector_balls:
             return
 
         source_count_maps: dict[int | None, dict[tuple[int, int], int]] = {}
-        for ct in ct_by_name.values():
+        for ct in ct_by_award_id.values():
             sid = ct.source_special_id
             if sid in source_count_maps:
                 continue
@@ -171,7 +179,7 @@ class Claim(commands.Cog):
             if sid is not None:
                 qs = qs.filter(special_id=sid)
             count_map: dict[tuple[int, int], int] = defaultdict(int)
-            rows = await qs.values_list("player_id", "ball_id").alist()
+            rows = [row async for row in qs.values_list("player_id", "ball_id")]
             for player_id, ball_id in rows:
                 count_map[(player_id, ball_id)] += 1
             source_count_maps[sid] = count_map
@@ -199,7 +207,9 @@ class Claim(commands.Cog):
             )
 
             try:
-                user = await self.bot.fetch_user(bi.player.discord_id)
+                user = self.bot.get_user(bi.player.discord_id) or await self.bot.fetch_user(
+                    bi.player.discord_id
+                )
                 source_label = f"{ct.source_special.name} " if ct.source_special else ""
                 await user.send(
                     f"Your **{bi.ball.country} {ct.name}** ball has been removed "

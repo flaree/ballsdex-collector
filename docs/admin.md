@@ -29,6 +29,11 @@ The admin enforces the following before saving:
 - `min` must be strictly less than `max`.
 - `gap` must be a positive integer.
 - `rarity_min` must be strictly less than `rarity_max`.
+- `name`, lower-cased with spaces replaced by underscores, must be a valid Discord slash
+  command name (1-32 characters; letters, numbers, hyphens, and underscores only) and must not
+  collide with another Collector Type's derived command name.
+- `award_special`, if set, must not already be used by another Collector Type — each award
+  special can only map to one Collector Type.
 
 ## Editing an existing Collector Type
 

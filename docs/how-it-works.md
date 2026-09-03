@@ -95,12 +95,12 @@ This ensures that players who trade away their source balls lose their collector
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `name` | `CharField(64)` | — | Display name; also used to derive the slash-command name. Must be unique. |
+| `name` | `CharField(64)` | — | Display name; also used to derive the slash-command name. Must be unique, and must produce a valid, unique 1-32 character command name once lower-cased with spaces replaced by underscores. |
 | `min` | `IntegerField` | `250` | Minimum ball count required (applied at `rarity_min`). |
 | `max` | `IntegerField` | `3500` | Maximum ball count required (applied at `rarity_max`). |
 | `gap` | `IntegerField` | `50` | Rounding step applied to the interpolated count. |
 | `rarity_min` | `FloatField` | `0.05` | Ball rarity value that maps to `min`. |
 | `rarity_max` | `FloatField` | `0.80` | Ball rarity value that maps to `max`. |
 | `source_special` | `FK → Special` | `null` | If set, only instances with this special count toward the threshold. |
-| `award_special` | `FK → Special` | `null` | The special applied to the awarded ball. **Must be set** for `/claim` to work. |
+| `award_special` | `FK → Special` | `null` | The special applied to the awarded ball. **Must be set** for `/claim` to work, and must be unique across Collector Types. |
 | `enabled` | `BooleanField` | `True` | Disabled types are skipped on cog load and during revocation checks. |
