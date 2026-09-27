@@ -11,6 +11,7 @@ from discord.ext import commands
 
 from ballsdex.core.utils.transformers import BallEnabledTransform
 from bd_models.models import Ball, BallInstance, Player
+from settings.models import settings
 
 from ..models import CollectorType
 
@@ -64,10 +65,10 @@ class Claim(commands.Cog):
 
         cmd: app_commands.Command = app_commands.Command(
             name=cmd_name,
-            description=f"Claim a {ct.name} ball.",
+            description=f"Claim a {ct.name} {settings.collectible_name}.",
             callback=callback,
         )
-        app_commands.describe(ball=f"The ball to claim a {ct.name} for")(cmd)
+        app_commands.describe(ball=f"The {settings.collectible_name} to claim a {ct.name} for")(cmd)
         return cmd
 
     async def _handle_claim(
@@ -91,7 +92,7 @@ class Claim(commands.Cog):
             player = await Player.objects.aget(discord_id=interaction.user.id)
         except Player.DoesNotExist:
             await interaction.followup.send(
-                "You don't have a player profile yet. Catch some balls first!",
+                f"You don't have a player profile yet. Catch some {settings.plural_collectible_name} first!",
                 ephemeral=True,
             )
             return
@@ -103,7 +104,7 @@ class Claim(commands.Cog):
         ).aexists()
         if already_has:
             await interaction.followup.send(
-                f"You already have a **{ball.country} {ct.name}** ball.",
+                f"You already have a **{ball.country} {ct.name}** {settings.collectible_name}.",
                 ephemeral=True,
             )
             return
@@ -117,8 +118,8 @@ class Claim(commands.Cog):
         if count < needed:
             source_label = f"{ct.source_special.name} " if ct.source_special else ""
             await interaction.followup.send(
-                f"You need **{needed}** {source_label}{ball.country} balls to claim a "
-                f"{ct.name} ball. You currently have **{count}**.",
+                f"You need **{needed}** {source_label}{ball.country} {settings.plural_collectible_name} to claim a "
+                f"{ct.name} {settings.collectible_name}. You currently have **{count}**.",
                 ephemeral=True,
             )
             return
@@ -129,7 +130,7 @@ class Claim(commands.Cog):
             special=award_special,
         )
         await interaction.followup.send(
-            f"Successfully claimed your **{ball.country} {ct.name}** ball!",
+            f"Successfully claimed your **{ball.country} {ct.name}** {settings.collectible_name}!",
             ephemeral=True,
         )
 
@@ -212,9 +213,9 @@ class Claim(commands.Cog):
                 )
                 source_label = f"{ct.source_special.name} " if ct.source_special else ""
                 await user.send(
-                    f"Your **{bi.ball.country} {ct.name}** ball has been removed "
+                    f"Your **{bi.ball.country} {ct.name}** {settings.collectible_name} has been removed "
                     f"because you no longer meet the requirement of **{needed}** "
-                    f"{source_label}{bi.ball.country} balls (you currently have **{count}**)."
+                    f"{source_label}{bi.ball.country} {settings.plural_collectible_name} (you currently have **{count}**)."
                 )
             except discord.HTTPException:
                 log.info(
